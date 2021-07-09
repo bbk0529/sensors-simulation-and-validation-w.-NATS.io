@@ -1,0 +1,18 @@
+{
+  "title": "KISTERS WATER Python Validation Rules",
+
+  "rest": {
+    "threaded": "True",
+    "port": 5002
+  },
+
+  "components": [
+    {
+      "initialize": "kisters.water.time_series.validation.rules.padp.rest.plugin_controller:init"
+    },
+    {
+      "implementation": "kisters.water.time_series.validation.rules.service.validation_store_component:ValidationStoreComponent"
+    }
+
+  ]
+}
