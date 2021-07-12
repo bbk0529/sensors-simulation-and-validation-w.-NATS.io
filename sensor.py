@@ -7,13 +7,23 @@ from nats.aio.errors import ErrTimeout, ErrNoServers
 import json
 import pickle
 
-df = pickle.load(open('temp_dwd_data.p', 'rb'))
-data = df.values
+df = pickle.load(open('temp_dwd_data.p', 'rb')).values
 
 async def run(loop):
     nc = NATS()
     await nc.connect()
         
+
+    def pick_data(df) : 
+        size_timesteps = 30
+        size_stations = 10 
+        idx_station = np.random.choice(range(df.shape[0]), size=size_stations)
+        idx_timesteps = np.random.choice(range(0, df.shape[1]-size_timesteps))
+        ts_data = df[idx_station, idx_timesteps: idx_timesteps + size_timesteps]
+        print("\n",idx_station[0], idx_timesteps)
+        print(ts_data)
+        return ts_data.tolist(), idx_station[0], idx_timesteps
+
     async def request_handler(msg):
         print(msg)
         subject = msg.subject
@@ -23,19 +33,14 @@ async def run(loop):
             subject=subject, reply=reply, data=data))
 
 
-    async def send_data() : 
-        # data = np.random.randn(10)
-        size = 20
-        idx_station = np.random.choice(range(data.shape[0]), size=10)
-        idx_timesteps = np.random.choice(range(0, data.shape[1]-size))
-        ts_data = data [idx_station, idx_timesteps: idx_timesteps + size]
-        print("\n",idx_station[0], idx_timesteps)
-        print(ts_data)
-        message = json.dumps({"temperature" : ts_data.tolist()})
-        # print(message)
-        await nc.request(
-                "sensor" + "." + str(idx_station[0]) + "." + str(idx_timesteps),
-                message.encode(), 
+    async def send_data() :         
+        
+        message = dict()        
+        message['temperature'], idx_station, idx_timesteps= pick_data(df)
+        message = json.dumps(message)        
+        await nc.request(                
+                "sensor.processed" + "." + str(idx_station) + "." + str(idx_timesteps),
+                message.encode(),  #message, should be encoded
                 expected=100, 
                 cb=request_handler
         )
